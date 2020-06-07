@@ -2,10 +2,10 @@
 
 LL::LL(){
 
-};
+}
 LL::~LL(){
 
-};
+}
 
 void LL::loadFile(std::fstream file)
 {
@@ -16,13 +16,20 @@ void LL::loadFile(std::fstream file)
 		getline(file, line);
 		preProcess(line, count);
 	}
-};
+	// TODO: exercute rmLRecur() and rmBacktrack()
+	process();
+}
 
-void LL::preProcess(std::string line, int count)
+void LL::createTable()
+{
+	generateFirst();
+	generateFollow();
+}
+
+void LL::preProcess(std::string line, int &count)
 {
 	std::string N, syntax;
 	int syntaxLoc = 0, subSyntaxLoc = 0, div;
-	bool sub = false;
 	if (line.length() > 0)
 	{
 		div = getDiv(line);
@@ -34,29 +41,47 @@ void LL::preProcess(std::string line, int count)
 		/* insert nonterminate symbol */
 		for (int i = 0; i < div; i++)
 			N.push_back(line.at(i));
-		finalSyntax.at(count).N = N;
-		// TODO: exercute rmLRecur() and rmBacktrack()
-
-
+		rawSyntax.at(count).N = N;
 		/* symbols should be divided by whitespace */
-		for (int i = div; i < line.length(); i++)
+		for (int i = div + 2; i < line.length(); i++)
 		{
-			if (line.at(i) == '|')
-				sub = true;
-			if (line.at(i) == ' ')
+			if (line.at(i) == ' ' || line.at(i) != '|')
 				continue;
-			while (line.at(i) != ' ')
+			while (line.at(i) != '|' && line.at(i) != ' ')
 				syntax.push_back(line.at(i++));
-			/* insert symbol before '|' */
-			if (!sub)
-				finalSyntax.at(count).syntax.at(syntaxLoc++) = syntax;
-			/* insert symbol after '|' */
-			else
-				finalSyntax.at(count).subSyntax.at(subSyntaxLoc++) = syntax;
+			rawSyntax.at(count).symbols.at(syntaxLoc++) = syntax;
 		}
 		count++;
 	}
-};
+}
+
+void LL::process()
+{
+	rmLRecur();
+	rmBacktrack();
+	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
+	{
+		if (isNonTerminate(iter->N))
+		{
+			nonterminate.push_back(iter->N);
+			for (auto iter2 = iter->symbols.begin(); iter2 != iter->symbols.end(); iter++)
+			{
+				if(isTerminate(*iter2))
+					terminate.push_back(*iter2);
+				else if(isNonTerminate(*iter2))
+					nonterminate.push_back(*iter2);
+			}
+		}
+	}
+	std::unique(terminate.begin(), terminate.end());
+	std::unique(nonterminate.begin(), nonterminate.end());
+}
+
+bool LL::hasCommonFactor(char *data, char &factor)
+{
+
+}
+
 void LL::printData()
 {
 	printf("Terminate: ");
@@ -69,15 +94,21 @@ void LL::printData()
 		printf("%s", *iter);
 	printf("\n");
 
+	printf("RawSyntax: \n");
+	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
+	{
+		printf("%s ->", iter->N);
+		for (auto iter2 = iter->symbols.begin(); iter2 != iter->symbols.end(); iter2++)
+			printf(" %s", *iter2);
+		printf("\n");
+	}
+
 	printf("FinalSyntax: \n");
 	for (auto iter = finalSyntax.begin(); iter != finalSyntax.end(); iter++)
 	{
 		printf("%s ->", iter->N);
-		for (auto iter2 = iter->syntax.begin(); iter2 != iter->syntax.end(); iter2++)
+		for (auto iter2 = iter->symbols.begin(); iter2 != iter->symbols.end(); iter2++)
 			printf(" %s", *iter2);
-		if(!iter->subSyntax.empty())
-			for (auto iter2 = iter->subSyntax.begin(); iter2 != iter->subSyntax.end(); iter2++)
-				printf("| %s", *iter2);
 		printf("\n");
 	}
 
@@ -101,21 +132,68 @@ void LL::printData()
 	
 };
 
-bool LL::isTerminate(char ch)
+bool LL::isTerminate(std::string data)
 {
+	if (data.at(0) >= 'a' && data.at(0) <= 'z')
+		return true;
+	else
+		return false;
+}
+bool LL::isNonTerminate(std::string data)
+{
+	if (data.at(0) >= 'A' && data.at(0) <= 'Z')
+		return true;
+	else
+		return false;
+}
 
-}
-bool LL::isNonTerminate(char ch)
+void LL::rmLRecur()
 {
+	std::string N, str;
+	char factor;
+	int count, mark;
+	int *locOfRecur;
+	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
+	{
+		N = iter->N;
+		locOfRecur = new int[iter->symbols.size()];
+		count = 0, mark = 0;
+		for (auto iter2 = iter->symbols.begin(); iter2 != iter->symbols.end(); iter2++)
+		{
+			if (iter2->substr(0, N.size() - 1).compare(N) == 0)
+			{
+				locOfRecur[mark++] = count;
+			}
+			count++;
+		}
+		/* left recursive found */
+		if (mark != 0)
+		{
+			//rmLRecur(*iter, locOfRecur, mark);
+		}
+
+		
+	}
+	delete[] locOfRecur;
 }
-// void LL::syntaxPreProcess()
-// {
-// }
-void LL::rmLRecur(int loc)
+void LL::rmBacktrack()
 {
-}
-void LL::rmBacktrack(int loc)
-{
+	std::string N, str;
+	char factor, *firstChar;
+	int count;
+	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
+	{
+		N = iter->N;
+		firstChar = new char[iter->symbols.size()];
+		count = 0;
+		for (auto iter2 = iter->symbols.begin(); iter2 != iter->symbols.end(); iter2++)
+		{
+			firstChar[count] = iter2->at(0);
+			count++;
+		}
+
+	}
+	delete[] firstChar;
 }
 
 /* get "->" location in string */
