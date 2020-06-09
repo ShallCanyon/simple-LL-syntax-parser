@@ -67,7 +67,7 @@ void LL::generateFirst()
 	std::vector<std::string>::iterator strIter;
 	int i, j, k;
 	char tmpChar;
-	bool needRescan = false, firstFound, allHaveEpisilon;
+	bool needRescan = false, firstFound, hasEpisilon;
 	//循环执行直到所有文法处理完毕
 	do
 	{
@@ -102,19 +102,19 @@ void LL::generateFirst()
 						needRescan = true;
 						set.insert(tmpChar);
 					}
-					continue;
 				}
 				//某一段文法内存在非终结符
 				else if(isNonTerminate(tmpChar))
 				{ 
 					firstFound = true;
-					allHaveEpisilon = true;
+					//TODO: this boolean remains bug
+					hasEpisilon = false;
 					//循环寻找非终结符，并停止在不含ε的非终结符位置
 					while (isNonTerminate(strIter->at(i)))
 					{
 						tmpStr.clear();
 						//获取非终结符
-						if (checkApostrophe(strIter, i, tmpStr))
+						if (!checkApostrophe(strIter, i, tmpStr))
 						{
 							printf("Finding nonterminate error: out of range\n");
 							exit(-1);
@@ -143,21 +143,21 @@ void LL::generateFirst()
 											if (firstIter->second.find(*setIter) == firstIter->second.end())
 											{
 												needRescan = true;
-												set.insert(tmpChar);
+												set.insert(*setIter);
 											}
 										}
 										else
 										{
 											needRescan = true;
-											set.insert(tmpChar);
+											set.insert(*setIter);
 										}
 									}
 									else
-										allHaveEpisilon = false;
+										hasEpisilon = true;
 								}
 								//若该非终结符first集有ε，继续寻找接下来的非终结符
 								//若没有ε，停止寻找
-								if (!allHaveEpisilon)
+								if (!hasEpisilon)
 									break;
 							}
 						}
@@ -173,7 +173,7 @@ void LL::generateFirst()
 					if (!firstFound)
 						continue;
 					//遇到所有非终结符的first集都有ε, 若其后有终结符，将该终结符写入first(N)
-					if (allHaveEpisilon)
+					if (hasEpisilon)
 					{
 						set.insert('$');
 						//若其后有终结符，将该终结符写入first(N)
@@ -205,6 +205,7 @@ void LL::generateFirst()
 				else
 				{
 					firstSet.insert(std::pair<std::string, std::set<char>>(N, set));
+					firstIter = firstSet.find(N);
 				}
 			}
 		}
@@ -218,7 +219,7 @@ void LL::generateFollow()
 
 void LL::preProcess(std::string line, int &count)
 {
-	std::string N;
+	std::string N, tmp;
 	std::vector<std::string> syntax;
 	strSet::iterator iter;
 	int div, syntaxLoc = 0, subSyntaxLoc = 0, loc = 0;
@@ -241,11 +242,13 @@ void LL::preProcess(std::string line, int &count)
 
 		for (int i = div + 2; i < line.length(); i++)
 		{
-			if (line.at(i) == ' ' || line.at(i) != '|')
+			tmp.clear();
+			if (line.at(i) == ' ' || line.at(i) == '|')
 				continue;
-			while (line.at(i) != '|' && line.at(i) != ' ')
-				syntax.at(loc).push_back(line.at(i++));
+			while (i < line.length() && line.at(i) != '|' && line.at(i) != ' ')
+				tmp += line.at(i++);
 			//rawSyntax.at(count).strings.at(syntaxLoc++) = syntax;
+			syntax.push_back(tmp);
 			loc++;
 		}
 
@@ -309,25 +312,25 @@ void LL::printData()
 	printf("RawSyntax: \n");
 	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
 	{
-		printf("%s ->", iter->first);
+		printf("%s ->", iter->first.c_str());
 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
-			printf(" %s", *iter2);
+			printf(" %s ", iter2->c_str());
 		printf("\n");
 	}
 
 	printf("FinalSyntax: \n");
 	for (auto iter = finalSyntax.begin(); iter != finalSyntax.end(); iter++)
 	{
-		printf("%s ->", iter->first);
+		printf("%s ->", iter->first.c_str());
 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
-			printf(" %s", *iter2);
+			printf(" %s", iter2->c_str());
 		printf("\n");
 	}
 
 	printf("First:\n");
 	for (auto iter = firstSet.begin(); iter != firstSet.end(); iter++)
 	{
-		printf("%s ->", iter->first);
+		printf("%s ->", iter->first.c_str());
 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
 			printf(" %c ", *iter2);
 		printf("\n");
@@ -336,7 +339,7 @@ void LL::printData()
 	printf("Follow:\n");
 	for (auto iter = followSet.begin(); iter != followSet.end(); iter++)
 	{
-		printf("%s ->", iter->first);
+		printf("%s ->", iter->first.c_str());
 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
 			printf(" %c ", *iter2);
 		printf("\n");

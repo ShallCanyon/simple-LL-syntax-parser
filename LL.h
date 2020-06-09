@@ -45,7 +45,7 @@ class LL{
         /* final data after raw data processed */
         //std::vector<strSet> finalSyntax;
         strSet finalSyntax;
-
+        std::string beginSymbol;
         charSet firstSet;
         charSet followSet;
         
