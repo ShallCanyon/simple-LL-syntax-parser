@@ -1,45 +1,45 @@
 #include "LL.h"
 
-LL::LL(){
-
-}
-LL::~LL(){
-
-}
-
-void LL::loadFile(std::fstream file)
+LL::LL()
 {
-    std::string line;
-    int count = 0;
+}
+LL::~LL()
+{
+}
+
+void LL::loadFile(std::fstream &file)
+{
+	std::string line;
+	int count = 0;
 	while (!file.eof())
-    {
+	{
 		getline(file, line);
 		preProcess(line, count);
 	}
 	// TODO: exercute rmLRecur() and rmBacktrack()
-	process();
+	//process();
 }
 
 void LL::createTable()
 {
 	generateFirst();
-	generateFollow();
+	//generateFollow();
 }
 
 void LL::test()
 {
-	std::vector<char> ch;
+	std::set<char> ch;
 	std::string str;
-	ch.push_back('H');
-	ch.push_back('E');
-	ch.push_back('L');
-	ch.push_back('L');
-	ch.push_back('O');
-	set.insert(std::pair<std::string, std::vector<char>>("first", ch));
-	set.insert(std::pair<std::string, std::vector<char>>("second", ch));
-	set.insert(std::pair<std::string, std::vector<char>>("first", ch));
-	std::map<std::string, std::vector<char>>::iterator iter;
-	std::vector<char>::iterator iter2;
+	ch.insert('H');
+	ch.insert('E');
+	ch.insert('L');
+	ch.insert('L');
+	ch.insert('O');
+	set.insert(std::pair<std::string, std::set<char>>("first", ch));
+	set.insert(std::pair<std::string, std::set<char>>("second", ch));
+	set.insert(std::pair<std::string, std::set<char>>("first", ch));
+	charSet::iterator iter;
+	std::set<char>::iterator iter2;
 	for (iter = set.begin(); iter != set.end(); iter++)
 	{
 		printf("key: %s, value: {", iter->first.c_str());
@@ -48,7 +48,7 @@ void LL::test()
 		printf("}\n");
 	}
 	iter = set.find("first");
-	if(iter!=set.end())
+	if (iter != set.end())
 	{
 		printf("second found, the value is: { ");
 		for (iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
@@ -61,66 +61,159 @@ void LL::test()
 
 void LL::generateFirst()
 {
-	std::string N;
-	std::vector<char> set;
-	int i = 0, j, k;
-	// for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
-	// {
-	// 	N = iter->N;
-	// 	for (auto iter2 = iter->strings.begin(); iter2 != iter->strings.end(); iter2++)
-	// 	{
-	// 		if (isTerminate(iter2->at(0)) /*|| iter2->at(0) == ε*/)
-	// 		{
-	// 			set.push_back(iter2->at(0));
-	// 		}
-	// 	}
-	// 	firstSet.at(i).N = N;
-	// 	firstSet.at(i).ch = set;
-	// 	i++;
-	// 	set.clear();
-	// }
-	// i = 0;
-	// set.clear();
-	// // S -> AB
-	// for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
-	// {
-	// 	// S
-	// 	N = iter->N;
-	// 	// AB
-	// 	for (auto strings = iter->strings.begin(); strings != iter->strings.end(); strings++)
-	// 	{
-	// 		// AB
-	// 		for (j = 0; j < strings->size(); j++)
-	// 		{
-	// 			if (isNonTerminate(strings->at(j)))
-	// 			{
-	// 				// First(A) = {Ca | ε}
-	// 				// First(B) = {cB`}
-	// 				for (auto firstIter = firstSet.begin(); firstIter != firstSet.end(); firstIter++)
-	// 				{
-	// 					//TODO: find '`'
-	// 					if (firstIter->N.at(0) == strings->at(0))
-	// 					{
-	// 						// {b}
-	// 						for (k = 0; k < firstIter->ch.size(); k++)
-	// 						{
-	// 							/*if (firstIter->ch.at(k) != 'ε')
-	// 								set.push_back(firstIter->ch.at(k));*/
-	// 						}
-	// 						break;
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-
+	std::string N, tmpStr;
+	std::set<char> set;
+	charSet::iterator firstIter, tmpIter;
+	std::vector<std::string>::iterator strIter;
+	int i, j, k;
+	char tmpChar;
+	bool needRescan = false, firstFound, allHaveEpisilon;
+	//循环执行直到所有文法处理完毕
+	do
+	{
+		needRescan = false;
+		//从下到上处理文法
+		for (auto rawIter = rawSyntax.rbegin(); rawIter != rawSyntax.rend(); rawIter++)
+		{
+			//获取非终结符并在first集中寻找
+			N = rawIter->first;
+			firstIter = firstSet.find(N);
+			set.clear();
+			//寻找该非终结符的文法内是否有也未写入first集的非终结符
+			/* 循环second的每一条字符串 */
+			for (strIter = rawIter->second.begin(); strIter != rawIter->second.end(); strIter++)
+			{
+				i = 0;
+				//某一段文法内可直接写入终结符或空
+				tmpChar = strIter->at(0);
+				if (tmpChar == '$'  || isTerminate(tmpChar))
+				{
+					if (firstIter != firstSet.end())
+					{
+						//如果first(N)存在且其中没有该终结符
+						if (firstIter->second.find(tmpChar) == firstIter->second.end())
+						{
+							needRescan = true;
+							set.insert(tmpChar);
+						}
+					}
+					else
+					{
+						needRescan = true;
+						set.insert(tmpChar);
+					}
+					continue;
+				}
+				//某一段文法内存在非终结符
+				else if(isNonTerminate(tmpChar))
+				{ 
+					firstFound = true;
+					allHaveEpisilon = true;
+					//循环寻找非终结符，并停止在不含ε的非终结符位置
+					while (isNonTerminate(strIter->at(i)))
+					{
+						tmpStr.clear();
+						//获取非终结符
+						if (checkApostrophe(strIter, i, tmpStr))
+						{
+							printf("Finding nonterminate error: out of range\n");
+							exit(-1);
+						}
+						if (!tmpStr.empty())
+						{
+							//寻找该非终结符是否有first集
+							tmpIter = firstSet.find(tmpStr);
+							//该非终结符没有first集，跳到下一条字符串
+							if (tmpIter == firstSet.end())
+							{
+								needRescan = true;
+								firstFound = false;
+								break;
+							}
+							//该非终结符有first集
+							else
+							{
+								//将非ε元素写入first集
+								for (auto setIter = tmpIter->second.begin(); setIter != tmpIter->second.end(); setIter++)
+								{
+									if (*setIter != '$')
+									{
+										if (firstIter != firstSet.end())
+										{
+											if (firstIter->second.find(*setIter) == firstIter->second.end())
+											{
+												needRescan = true;
+												set.insert(tmpChar);
+											}
+										}
+										else
+										{
+											needRescan = true;
+											set.insert(tmpChar);
+										}
+									}
+									else
+										allHaveEpisilon = false;
+								}
+								//若该非终结符first集有ε，继续寻找接下来的非终结符
+								//若没有ε，停止寻找
+								if (!allHaveEpisilon)
+									break;
+							}
+						}
+						else
+						{
+							printf("get nonterminate string error\n");
+							exit(-1);
+						}
+						if(i >= strIter->size())
+							break;
+					}
+					//存在有非终结符没有first集
+					if (!firstFound)
+						continue;
+					//遇到所有非终结符的first集都有ε, 若其后有终结符，将该终结符写入first(N)
+					if (allHaveEpisilon)
+					{
+						set.insert('$');
+						//若其后有终结符，将该终结符写入first(N)
+						if (i < strIter->size() && isTerminate(strIter->at(i)))
+						{
+							if (firstIter != firstSet.end())
+							{
+								//如果first(N)存在且其中没有该终结符
+								if (firstIter->second.find(strIter->at(i)) == firstIter->second.end())
+								{
+									needRescan = true;
+									set.insert(strIter->at(i));
+								}
+							}
+							else
+							{
+								needRescan = true;
+								set.insert(strIter->at(i));
+							}
+						}
+					}
+				}
+				//如果first(N)已存在，将新数据写入
+				if(firstIter!=firstSet.end())
+				{
+					firstIter->second.insert(set.begin(), set.end());
+				}
+				//如果first(N)不存在，写入新数据对
+				else
+				{
+					firstSet.insert(std::pair<std::string, std::set<char>>(N, set));
+				}
+			}
+		}
+	} while (needRescan);
 
 }
 
 void LL::generateFollow()
 {
-
 }
 
 void LL::preProcess(std::string line, int &count)
@@ -141,11 +234,11 @@ void LL::preProcess(std::string line, int &count)
 
 		for (int i = 0; i < div; i++)
 		{
-			if(line.at(i)!= ' ')
+			if (line.at(i) != ' ')
 				N.push_back(line.at(i));
 		}
 		//rawSyntax.at(count).N = N;
-		
+
 		for (int i = div + 2; i < line.length(); i++)
 		{
 			if (line.at(i) == ' ' || line.at(i) != '|')
@@ -173,6 +266,9 @@ void LL::process()
 {
 	//rmLRecur();
 	//rmBacktrack();
+
+	std::string str;
+	int i = 0;
 	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
 	{
 		//TODO: fix terminate judgement
@@ -181,20 +277,21 @@ void LL::process()
 			nonterminate.insert(iter->first);
 			for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter++)
 			{
-				if(isTerminate(iter2->at(0)))
-					terminate.insert(*iter2);
+				if (isTerminate(iter2->at(0)))
+				{
+					str = iter2->at(0);
+					terminate.insert(str);
+				}	
 				else if (isNonTerminate(iter2->at(0)))
-					nonterminate.insert(*iter2);
+				{
+					checkApostrophe(iter2, i, str);
+					nonterminate.insert(str);
+				}
 			}
 		}
 	}
 	//std::unique(terminate.begin(), terminate.end());
 	//std::unique(nonterminate.begin(), nonterminate.end());
-}
-
-bool LL::hasCommonFactor(char *data, char &factor)
-{
-	return true;
 }
 
 void LL::printData()
@@ -235,7 +332,7 @@ void LL::printData()
 			printf(" %c ", *iter2);
 		printf("\n");
 	}
-	
+
 	printf("Follow:\n");
 	for (auto iter = followSet.begin(); iter != followSet.end(); iter++)
 	{
@@ -244,7 +341,6 @@ void LL::printData()
 			printf(" %c ", *iter2);
 		printf("\n");
 	}
-	
 };
 
 bool LL::isTerminate(char data)
@@ -287,8 +383,6 @@ void LL::rmLRecur()
 		{
 			//rmLRecur(*iter, locOfRecur, mark);
 		}
-
-		
 	}
 	delete[] locOfRecur;
 }
@@ -307,22 +401,40 @@ void LL::rmBacktrack()
 			firstChar[count] = iter2->at(0);
 			count++;
 		}
-
 	}
 	delete[] firstChar;
 }
 
 int LL::getDiv(std::string str)
 {
-    int loc = -1;
-    if (str.length() >= 3) /* Nonterminate word before "->", needs 3 words */
-    {
-        for (int i = 0; i < str.length() - 1; i++)
-            if (str.at(i) == '-' && str.at(i + 1) == '>')
-            {
-                loc = i;
-                break;
-            }
-    }
-    return loc;
+	int loc = -1;
+	if (str.length() >= 3) /* Nonterminate word before "->", needs 3 words */
+	{
+		for (int i = 0; i < str.length() - 1; i++)
+			if (str.at(i) == '-' && str.at(i + 1) == '>')
+			{
+				loc = i;
+				break;
+			}
+	}
+	return loc;
+}
+
+bool checkApostrophe(std::vector<std::string>::iterator iter, int &loc, std::string &str)
+{
+	if(loc < 0 || loc >= iter->size())
+		return false;
+	std::string tmp;
+	do
+	{
+		tmp += iter->at(loc);
+		loc++;
+	} while (loc < iter->size() && iter->at(loc) == '\'');
+	str = tmp;
+	return true;
+}
+
+bool hasCommonFactor(char *data, char &factor)
+{
+	return true;
 }

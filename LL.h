@@ -7,36 +7,21 @@
 
 //#define ε '$'
 
-typedef std::map<std::string, std::vector<char>> charSet;
+typedef std::map<std::string, std::set<char>> charSet;
 typedef std::map<std::string, std::vector<std::string>> strSet;
-
-/*
-typedef struct
-{
-    std::string N;
-    std::vector<std::string> strings;
-} strSet;
-
-typedef struct 
-{
-    std::string N;
-    std::vector<char> ch;
-}charSet;
-*/
 
 class LL{
     public:
         LL();
         ~LL();
         void test();
-        void loadFile(std::fstream file);
+        void loadFile(std::fstream &file);
         void createTable();
         void printData();
 
     protected:
         bool isTerminate(char data);
         bool isNonTerminate(char data);
-        bool hasCommonFactor(char *data, char &factor);
         void preProcess(std::string line, int &count);
         void process();
         //void syntaxPreProcess();
@@ -48,7 +33,7 @@ class LL{
         void generateFollow();
 
     private:
-        /* lists of terminate or nonterminate strings */        
+        /* lists of terminate or nonterminate strings */
         //std::vector<std::string> terminate;
         std::set<std::string> terminate;
         //std::vector<std::string> nonterminate;
@@ -66,3 +51,6 @@ class LL{
         
         charSet set;
 };
+
+bool checkApostrophe(std::vector<std::string>::iterator iter, int &loc, std::string &str);
+bool hasCommonFactor(char *data, char &factor);
