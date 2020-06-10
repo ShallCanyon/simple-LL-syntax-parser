@@ -8,7 +8,9 @@ int main(int argc, char const *argv[])
     //filename = "./test1.txt";
     //filename = "./test2.txt";
     //filename = "./test3.txt";
-    filename = "./test4.txt";
+    //filename = "./test4.txt";
+    //filename = "./test5.txt";
+    filename = "./test6.txt";
     input.open(filename, std::ios::in);
     if(input.is_open())
     {

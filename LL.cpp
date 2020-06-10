@@ -23,7 +23,7 @@ void LL::loadFile(std::fstream &file)
 void LL::createTable()
 {
 	generateFirst();
-	//generateFollow();
+	generateFollow();
 }
 
 void LL::test()
@@ -108,8 +108,6 @@ void LL::generateFirst()
 				else if(isNonTerminate(tmpChar))
 				{ 
 					firstFound = true;
-					
-					
 					//循环寻找非终结符，并停止在不含ε的非终结符位置
 					while (isNonTerminate(strIter->at(strIterLoc)))
 					{
@@ -221,6 +219,171 @@ void LL::generateFirst()
 
 void LL::generateFollow()
 {
+	std::string globalLeftN, localLeftN, localRightN;
+	std::set<char> set;
+	std::vector<std::string> rightStr;
+	std::vector<std::string>::iterator strIter;
+	strSet::iterator globalIter, localIter;
+	bool needRescan = false, hasEpisilon = false, allHaveEpisilon = true;
+	std::size_t loc, length;
+	//std::string::size_type loc;
+
+	//initialization
+	set.insert('#');
+	followSet.insert(std::pair<std::string, std::set<char>>(beginSymbol, set));
+	set.clear();
+
+	do
+	{
+		needRescan = false;
+		// 从上到下循环所有文法，每行获得文法的左端非终结符
+		for (globalIter = rawSyntax.begin(); globalIter != rawSyntax.end(); globalIter++)
+		{
+			globalLeftN = globalIter->first;
+			auto globalLeftFollowIter = followSet.find(globalLeftN);
+			// 再次从上到下循环所有文法，每次获得文法右侧字符串集
+			for (localIter = rawSyntax.begin(); localIter != rawSyntax.end(); localIter++)
+			{
+				// 循环右侧字符串集
+				localLeftN = localIter->first;
+				for (strIter = localIter->second.begin(); strIter != localIter->second.end(); strIter++)
+				{
+					loc = strIter->find(globalLeftN);
+					if(loc == strIter->npos)
+						continue;
+					length = strIter->size();
+					// 若globalLeftN 为长度大于1的字符串（例如B'），将loc移动到该字符串末尾 
+					loc += globalLeftN.size() - 1;
+
+					//右侧为空（找到的字符在最右侧）  follow(globalLeftN) += follow(localLeftN)
+					if(loc == length - 1)
+					{
+						auto localLeftFollowIter = followSet.find(localLeftN);
+						// follow(localLeftN)存在， 将follow(localLeftN)写入到follow(globalLeftN)
+						if (localLeftFollowIter != followSet.end())
+						{
+							//循环查找follow(localLeftN)中的字符是否是follow(globalLeftN)中的新数据
+							for (auto tmpChar = localLeftFollowIter->second.begin(); tmpChar != localLeftFollowIter->second.end(); tmpChar++)
+							{
+								if (globalLeftFollowIter->second.find(*tmpChar) == globalLeftFollowIter->second.end())
+								{
+									set.insert(*tmpChar);
+									needRescan = true;
+								}
+							}
+						}
+						// follow(localLeftN)不存在, 跳过当前字符串，等待下一次global循环
+						else
+						{
+							needRescan = true;
+							continue;
+						}
+
+					}
+					//右侧为终结符, 将该终结符插入follow(globalLeftN)
+					else if(isTerminate(strIter->at(loc + 1)))
+					{
+						if (globalLeftFollowIter->second.find(strIter->at(loc + 1)) == globalLeftFollowIter->second.end())
+						{
+							needRescan = true;
+							set.insert(strIter->at(loc + 1));
+						}
+					}
+					//右侧为非终结符, 将first(localRightN) - '$' 写入 follow(globalLeftN), 检查first(localRightN)中是否有'$'
+					else if (isNonTerminate(strIter->at(loc + 1)))
+					{
+						allHaveEpisilon = true;
+						int i = loc + 1;
+						while (i < length && isNonTerminate(strIter->at(i)))
+						{
+							hasEpisilon = false;
+							bool check;
+							localRightN.clear();
+							check = checkApostrophe(strIter, i, localRightN);
+							if (!check)
+							{
+								printf("Error: Finding nonterminate out of range\n");
+								exit(-1);
+							}
+							auto localRightFirstIter = firstSet.find(localRightN);
+							if(localRightFirstIter == firstSet.end())
+							{
+								printf("Error: FirstSet %s not found\n", localRightN);
+								exit(-1);
+							}
+							for (auto charIter = localRightFirstIter->second.begin(); charIter != localRightFirstIter->second.end(); charIter++)
+							{
+								if(*charIter=='$')
+									hasEpisilon = true;
+								else
+								{
+									if (globalLeftFollowIter->second.find(*charIter) == globalLeftFollowIter->second.end())
+									{
+										needRescan = true;
+										set.insert(*charIter);
+									}
+								}
+							}
+							allHaveEpisilon &= hasEpisilon;
+							if (!hasEpisilon)
+								break;
+						}
+						if (allHaveEpisilon)
+						{
+							i--;
+							//连续的含$非终止符后有两种情况: 1. 右侧为空
+							if (i == length - 1)
+							{
+								auto localLeftFollowIter = followSet.find(localLeftN);
+								// follow(localLeftN)存在， 将follow(localLeftN)写入到follow(globalLeftN)
+								if (localLeftFollowIter != followSet.end())
+								{
+									//循环查找follow(localLeftN)中的字符是否是follow(globalLeftN)中的新数据
+									for (auto tmpChar = localLeftFollowIter->second.begin(); tmpChar != localLeftFollowIter->second.end(); tmpChar++)
+									{
+										if (globalLeftFollowIter->second.find(*tmpChar) == globalLeftFollowIter->second.end())
+										{
+											set.insert(*tmpChar);
+											needRescan = true;
+										}
+									}
+								}
+								// follow(localLeftN)不存在, 跳过当前字符串，等待下一次global循环
+								else
+								{
+									needRescan = true;
+									continue;
+								}
+							}
+							//2. 右侧为终止符
+							else if (isTerminate(strIter->at(i + 1)))
+							{
+								if (globalLeftFollowIter->second.find(strIter->at(i + 1)) == globalLeftFollowIter->second.end())
+								{
+									needRescan = true;
+									set.insert(strIter->at(i + 1));
+								}
+							}
+						}
+					}
+				}
+			}
+			//如果first(N)已存在，将新数据写入
+			if (globalLeftFollowIter != followSet.end())
+			{
+				globalLeftFollowIter->second.insert(set.begin(), set.end());
+			}
+			//如果first(N)不存在，写入新数据对
+			else
+			{
+				followSet.insert(std::pair<std::string, std::set<char>>(globalLeftN, set));
+				//globalLeftFollowIter = followSet.find(globalLeftN);
+			}
+			set.clear();
+		}
+	} while (needRescan);
+	
+
 }
 
 void LL::preProcess(std::string line, int &count)
@@ -259,6 +422,8 @@ void LL::preProcess(std::string line, int &count)
 		}
 
 		iter = rawSyntax.find(N);
+		if(beginSymbol.empty())
+			beginSymbol = N;
 		//非终止符已存在，新的数据写入已有数据之后
 		if (iter != rawSyntax.end())
 		{
@@ -305,6 +470,7 @@ void LL::process()
 
 void LL::printData()
 {
+	printf("Begin symbol: %s\n", beginSymbol.c_str());
 	printf("Terminate: ");
 	for (auto iter = terminate.begin(); iter != terminate.end(); iter++)
 		printf("%s", *iter);
@@ -354,10 +520,11 @@ void LL::printData()
 
 bool LL::isTerminate(char data)
 {
-	if (data >= 'a' && data <= 'z')
+	if ((data >= 'a' && data <= 'z') || (data >= '(' && data <= '/'))
 		return true;
 	else
 		return false;
+	//return !isNonTerminate(data);
 }
 bool LL::isNonTerminate(char data)
 {
