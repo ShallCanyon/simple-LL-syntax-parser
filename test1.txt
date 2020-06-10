@@ -1,0 +1,5 @@
+S  ->  AB
+A  ->  Ca | $
+B  ->  cB'
+B' ->  aACB' | $
+C  ->  b | $
