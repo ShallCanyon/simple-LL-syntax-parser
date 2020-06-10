@@ -65,9 +65,9 @@ void LL::generateFirst()
 	std::set<char> set;
 	charSet::iterator firstIter, tmpIter;
 	std::vector<std::string>::iterator strIter;
-	int i, j, k;
+	int strIterLoc, j, k;
 	char tmpChar;
-	bool needRescan = false, firstFound, hasEpisilon;
+	bool needRescan = false, firstFound, hasEpisilon, allHaveEpisilon;
 	//循环执行直到所有文法处理完毕
 	do
 	{
@@ -83,7 +83,8 @@ void LL::generateFirst()
 			/* 循环second的每一条字符串 */
 			for (strIter = rawIter->second.begin(); strIter != rawIter->second.end(); strIter++)
 			{
-				i = 0;
+				strIterLoc = 0;
+				allHaveEpisilon = true;
 				//某一段文法内可直接写入终结符或空
 				tmpChar = strIter->at(0);
 				if (tmpChar == '$'  || isTerminate(tmpChar))
@@ -107,14 +108,16 @@ void LL::generateFirst()
 				else if(isNonTerminate(tmpChar))
 				{ 
 					firstFound = true;
-					//TODO: this boolean remains bug
-					hasEpisilon = false;
+					
+					
 					//循环寻找非终结符，并停止在不含ε的非终结符位置
-					while (isNonTerminate(strIter->at(i)))
+					while (isNonTerminate(strIter->at(strIterLoc)))
 					{
+						//TODO: this boolean remains bug
+						hasEpisilon = false;
 						tmpStr.clear();
 						//获取非终结符
-						if (!checkApostrophe(strIter, i, tmpStr))
+						if (!checkApostrophe(strIter, strIterLoc, tmpStr))
 						{
 							printf("Finding nonterminate error: out of range\n");
 							exit(-1);
@@ -157,6 +160,7 @@ void LL::generateFirst()
 								}
 								//若该非终结符first集有ε，继续寻找接下来的非终结符
 								//若没有ε，停止寻找
+								allHaveEpisilon &= hasEpisilon;
 								if (!hasEpisilon)
 									break;
 							}
@@ -166,34 +170,36 @@ void LL::generateFirst()
 							printf("get nonterminate string error\n");
 							exit(-1);
 						}
-						if(i >= strIter->size())
+						if(strIterLoc >= strIter->size())
 							break;
 					}
 					//存在有非终结符没有first集
 					if (!firstFound)
 						continue;
 					//遇到所有非终结符的first集都有ε, 若其后有终结符，将该终结符写入first(N)
-					if (hasEpisilon)
+					if (allHaveEpisilon)
 					{
-						set.insert('$');
+						
 						//若其后有终结符，将该终结符写入first(N)
-						if (i < strIter->size() && isTerminate(strIter->at(i)))
+						if (strIterLoc < strIter->size() && isTerminate(strIter->at(strIterLoc)))
 						{
 							if (firstIter != firstSet.end())
 							{
 								//如果first(N)存在且其中没有该终结符
-								if (firstIter->second.find(strIter->at(i)) == firstIter->second.end())
+								if (firstIter->second.find(strIter->at(strIterLoc)) == firstIter->second.end())
 								{
 									needRescan = true;
-									set.insert(strIter->at(i));
+									set.insert(strIter->at(strIterLoc));
 								}
 							}
 							else
 							{
 								needRescan = true;
-								set.insert(strIter->at(i));
+								set.insert(strIter->at(strIterLoc));
 							}
 						}
+						else
+							set.insert('$');
 					}
 				}
 				//如果first(N)已存在，将新数据写入
