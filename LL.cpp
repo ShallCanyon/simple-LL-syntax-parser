@@ -87,7 +87,7 @@ void LL::generateFirst()
 				allHaveEpisilon = true;
 				//某一段文法内可直接写入终结符或空
 				tmpChar = strIter->at(0);
-				if (tmpChar == '$'  || isTerminate(tmpChar))
+				if (tmpChar == EPISILON  || isTerminate(tmpChar))
 				{
 					if (firstIter != firstSet.end())
 					{
@@ -137,7 +137,7 @@ void LL::generateFirst()
 								//将非ε元素写入first集
 								for (auto setIter = tmpIter->second.begin(); setIter != tmpIter->second.end(); setIter++)
 								{
-									if (*setIter != '$')
+									if (*setIter != EPISILON)
 									{
 										if (firstIter != firstSet.end())
 										{
@@ -197,7 +197,7 @@ void LL::generateFirst()
 							}
 						}
 						else
-							set.insert('$');
+							set.insert(EPISILON);
 					}
 				}
 				//如果first(N)已存在，将新数据写入
@@ -313,7 +313,7 @@ void LL::generateFollow()
 							}
 							for (auto charIter = localRightFirstIter->second.begin(); charIter != localRightFirstIter->second.end(); charIter++)
 							{
-								if(*charIter=='$')
+								if(*charIter==EPISILON)
 									hasEpisilon = true;
 								else
 								{

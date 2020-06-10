@@ -5,7 +5,7 @@
 #include <fstream>
 #include <algorithm>
 
-//#define EPISILON $
+#define EPISILON '$'
 
 typedef std::map<std::string, std::set<char>> charSet;
 typedef std::map<std::string, std::vector<std::string>> strSet;
