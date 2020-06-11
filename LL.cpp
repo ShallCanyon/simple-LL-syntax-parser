@@ -23,10 +23,8 @@ void LL::createTable()
 	generateFirst();
 	generateFollow();
 	initRawColHeader();
-
+	generateTable();
 }
-
-
 
 void LL::generateFirst()
 {
@@ -36,7 +34,7 @@ void LL::generateFirst()
 	std::vector<std::string>::iterator strIter;
 	int strIterLoc, j, k;
 	char tmpChar;
-	bool needRescan = false, firstFound, hasEpisilon, allHaveEpisilon;
+	bool needRescan, firstFound, hasEpisilon, allHaveEpisilon;
 	//循环执行直到所有文法处理完毕
 	do
 	{
@@ -80,7 +78,6 @@ void LL::generateFirst()
 					//循环寻找非终结符，并停止在不含ε的非终结符位置
 					while (isNonTerminate(strIter->at(strIterLoc)))
 					{
-						//TODO: this boolean remains bug
 						hasEpisilon = false;
 						tmpStr.clear();
 						//获取非终结符
@@ -146,7 +143,6 @@ void LL::generateFirst()
 					//遇到所有非终结符的first集都有ε, 若其后有终结符，将该终结符写入first(N)
 					if (allHaveEpisilon)
 					{
-						
 						//若其后有终结符，将该终结符写入first(N)
 						if (strIterLoc < strIter->size() && isTerminate(strIter->at(strIterLoc)))
 						{
@@ -171,9 +167,7 @@ void LL::generateFirst()
 				}
 				//如果first(N)已存在，将新数据写入
 				if(firstIter!=firstSet.end())
-				{
 					firstIter->second.insert(set.begin(), set.end());
-				}
 				//如果first(N)不存在，写入新数据对
 				else
 				{
@@ -183,7 +177,6 @@ void LL::generateFirst()
 			}
 		}
 	} while (needRescan);
-
 }
 
 void LL::generateFollow()
@@ -355,6 +348,114 @@ void LL::generateFollow()
 
 }
 
+std::string toString(char data)
+{
+	std::string str;
+	str = data;
+	return str;
+}
+
+std::string toString(char* data)
+{
+	std::string str;
+	str = data;
+	return str;
+}
+
+void LL::generateTable()
+{
+	std::string leftN, str/*, epiStr*/;
+	std::set<char> set;
+	std::map<std::string, std::string> strMap;
+	std::map<std::string, std::map<std::string, std::string>>::iterator tableIter;
+	str.clear();
+	//epiStr = EPISILON;
+
+	/* insert headers */
+	for (auto NIter = terminate.begin(); NIter != terminate.end(); NIter++)
+		strMap.insert(std::make_pair(*NIter, str));
+	for (auto TIter = nonterminate.begin(); TIter != nonterminate.end(); TIter++)
+		table.insert(std::make_pair(*TIter, strMap));
+
+	strMap.clear();
+	//循环获得非终结符leftN
+	for (auto firstIter = firstSet.begin(); firstIter != firstSet.end(); firstIter++)
+	{
+		/* leftN -> N */
+		leftN = firstIter->first;
+		/* tableIter -> table[N] */
+		tableIter = table.find(leftN);
+		auto leftNIter = rawSyntax.find(leftN);
+		//获取first(leftN)的所有字符
+		for (auto rightIter = firstIter->second.begin(); rightIter != firstIter->second.end(); rightIter++)
+		{
+			//str.clear();
+			/* 寻找rightIter指定的字符在rawSyntax的哪个字符串的第一个字符的first集中，将该字符串写入tableIter内 */
+			/* rightIter -> C */
+			if (*rightIter != EPISILON)
+			{
+				//auto leftNIter = rawSyntax.find(leftN);
+				/*  rawIter -> S */
+				for (auto rawIter = leftNIter->second.begin(); rawIter != leftNIter->second.end(); rawIter++)
+				{
+					/* firstChar -> E */
+					int loc = 0;
+					bool needRescan = true;
+					while(needRescan && loc < rawIter->size())
+					{
+						str.clear();
+						checkApostrophe(rawIter, loc, str);
+						char firstChar = str.at(0);
+						if (firstChar == *rightIter)
+						{
+							std::string tmpStr;
+							tmpStr = rawIter->substr(loc - 1, rawIter->size()) + " ";
+							tableIter->second.find(toString(*rightIter))->second += tmpStr;
+							needRescan = false;
+						}
+						else if (firstChar != EPISILON)
+						{
+							auto tmpIter = firstSet.find(str);
+							if (tmpIter != firstSet.end())
+							{
+								if (tmpIter->second.find(*rightIter) != tmpIter->second.end())
+								{
+									std::string tmpStr;
+									tmpStr = rawIter->substr(loc - 1, rawIter->size()) + " ";
+									tableIter->second.find(toString(*rightIter))->second += tmpStr;
+									needRescan = false;
+								}
+								else if (tmpIter->second.find(EPISILON) != tmpIter->second.end())
+									continue;
+								else
+									needRescan = false;
+							}
+							else
+								needRescan = false;
+						}
+						else
+							needRescan = false;
+					}
+				}
+			}
+			// 获得follow集的符号并全部写入episilon
+			else
+			{
+				auto followIter = followSet.find(leftN);
+				if (followIter == followSet.end())
+				{
+					printf("Finding followSet error\n");
+					continue;
+				}
+				for (auto tmpIter = followIter->second.begin(); tmpIter != followIter->second.end(); tmpIter++)
+				{
+					//str = *tmpIter;
+					tableIter->second.find(toString(*tmpIter))->second.push_back(EPISILON);
+				}
+			}
+		}
+	}
+}
 void LL::preProcess(std::string line/*, int &count*/)
 {
 	std::string N, tmp;
@@ -467,6 +568,25 @@ void LL::printData()
 		printf("%s = ", iter->first.c_str());
 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
 			printf(" %c ", *iter2);
+		printf("\n");
+	}
+
+	printf("Table:\n\t");
+	for (auto header = terminate.begin(); header != terminate.end(); header++)
+		printf("%s\t", header->c_str());
+	printf("\n");
+	for (auto rowIter = table.begin(); rowIter != table.end(); rowIter++)
+	{
+		printf("%s\t", rowIter->first.c_str());
+		for (auto colIter = rowIter->second.begin(); colIter != rowIter->second.end(); colIter++)
+		{
+			if (colIter->second.empty())
+				printf("\t");
+			else
+			{
+				printf("%s\t", colIter->second.c_str());
+			}
+		}
 		printf("\n");
 	}
 };

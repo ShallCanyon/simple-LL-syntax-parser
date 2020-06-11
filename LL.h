@@ -23,34 +23,25 @@ class LL{
         bool isNonTerminate(char data);
         void preProcess(std::string line/*, int &count*/);
         void initRawColHeader();
-        //void syntaxPreProcess();
-        void rmLRecur();
-        void rmBacktrack();
-        /* get "->" location in str */
+        // void rmLRecur();
+        // void rmBacktrack();
         int getDiv(std::string str);
         void generateFirst();
         void generateFollow();
+        void generateTable();
         bool checkApostrophe(std::vector<std::string>::iterator iter, int &loc, std::string &str);
 
     private:
+        std::string beginSymbol;
         /* lists of terminate or nonterminate strings */
-        //std::vector<std::string> terminate;
         std::set<std::string> terminate;
-        //std::vector<std::string> nonterminate;
         std::set<std::string> nonterminate;
 
-        /* raw data that loaded from loadFile */
-        //std::vector<strSet> rawSyntax;
         strSet rawSyntax;
-        /* final data after raw data processed */
-        //std::vector<strSet> finalSyntax;
-        strSet finalSyntax;
-        std::string beginSymbol;
         charSet firstSet;
         charSet followSet;
-        
-        charSet set;
+        std::map<std::string, std::map<std::string, std::string>> table;
 };
 
-
-bool hasCommonFactor(char *data, char &factor);
+std::string toString(char data);
+std::string toString(char* data);
