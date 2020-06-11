@@ -14,7 +14,6 @@ class LL{
     public:
         LL();
         ~LL();
-        void test();
         void loadFile(std::fstream &file);
         void createTable();
         void printData();
@@ -22,8 +21,8 @@ class LL{
     protected:
         bool isTerminate(char data);
         bool isNonTerminate(char data);
-        void preProcess(std::string line, int &count);
-        void process();
+        void preProcess(std::string line/*, int &count*/);
+        void initRawColHeader();
         //void syntaxPreProcess();
         void rmLRecur();
         void rmBacktrack();
@@ -31,6 +30,7 @@ class LL{
         int getDiv(std::string str);
         void generateFirst();
         void generateFollow();
+        bool checkApostrophe(std::vector<std::string>::iterator iter, int &loc, std::string &str);
 
     private:
         /* lists of terminate or nonterminate strings */
@@ -52,5 +52,5 @@ class LL{
         charSet set;
 };
 
-bool checkApostrophe(std::vector<std::string>::iterator iter, int &loc, std::string &str);
+
 bool hasCommonFactor(char *data, char &factor);

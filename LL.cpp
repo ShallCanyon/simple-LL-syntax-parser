@@ -10,54 +10,23 @@ LL::~LL()
 void LL::loadFile(std::fstream &file)
 {
 	std::string line;
-	int count = 0;
+	//int count = 0;
 	while (!file.eof())
 	{
 		getline(file, line);
-		preProcess(line, count);
+		preProcess(line/*, count*/);
 	}
-	// TODO: exercute rmLRecur() and rmBacktrack()
-	//process();
 }
 
 void LL::createTable()
 {
 	generateFirst();
 	generateFollow();
+	initRawColHeader();
+
 }
 
-void LL::test()
-{
-	std::set<char> ch;
-	std::string str;
-	ch.insert('H');
-	ch.insert('E');
-	ch.insert('L');
-	ch.insert('L');
-	ch.insert('O');
-	set.insert(std::pair<std::string, std::set<char>>("first", ch));
-	set.insert(std::pair<std::string, std::set<char>>("second", ch));
-	set.insert(std::pair<std::string, std::set<char>>("first", ch));
-	charSet::iterator iter;
-	std::set<char>::iterator iter2;
-	for (iter = set.begin(); iter != set.end(); iter++)
-	{
-		printf("key: %s, value: {", iter->first.c_str());
-		for (iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
-			printf("%c ", *iter2);
-		printf("}\n");
-	}
-	iter = set.find("first");
-	if (iter != set.end())
-	{
-		printf("second found, the value is: { ");
-		for (iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
-			printf("%c ", *iter2);
-		printf("}\n");
-	}
-	else
-		printf("Not found\n");
-}
+
 
 void LL::generateFirst()
 {
@@ -386,7 +355,7 @@ void LL::generateFollow()
 
 }
 
-void LL::preProcess(std::string line, int &count)
+void LL::preProcess(std::string line/*, int &count*/)
 {
 	std::string N, tmp;
 	std::vector<std::string> syntax;
@@ -432,40 +401,33 @@ void LL::preProcess(std::string line, int &count)
 		//非终止符不存在，插入新数据对
 		else
 			rawSyntax.insert(std::pair<std::string, std::vector<std::string>>(N, syntax));
-		count++;
+		//count++;
 	}
 }
 
-void LL::process()
+void LL::initRawColHeader()
 {
 	//rmLRecur();
 	//rmBacktrack();
-
-	std::string str;
-	int i = 0;
-	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
-	{
-		//TODO: fix terminate judgement
-		if (isNonTerminate(iter->first.at(0)))
+	std::string str, tmp;
+	int i;	
+	terminate.insert("#");
+	for (auto line = rawSyntax.begin(); line != rawSyntax.end(); line++)
+		if (isNonTerminate(line->first.at(0)))
 		{
-			nonterminate.insert(iter->first);
-			for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter++)
-			{
-				if (isTerminate(iter2->at(0)))
+			nonterminate.insert(line->first);
+			for (auto rightStrings = line->second.begin(); rightStrings != line->second.end(); rightStrings++)
+				for (auto soloStr = rightStrings->begin(); soloStr != rightStrings->end(); soloStr++)
 				{
-					str = iter2->at(0);
-					terminate.insert(str);
-				}	
-				else if (isNonTerminate(iter2->at(0)))
-				{
-					checkApostrophe(iter2, i, str);
-					nonterminate.insert(str);
+					str = *soloStr;
+					for (i = 0; i < str.size(); i++)
+						if (isTerminate(str.at(i)))
+						{
+							tmp = str.at(i);
+							terminate.insert(tmp);
+						}
 				}
-			}
 		}
-	}
-	//std::unique(terminate.begin(), terminate.end());
-	//std::unique(nonterminate.begin(), nonterminate.end());
 }
 
 void LL::printData()
@@ -473,12 +435,12 @@ void LL::printData()
 	printf("Begin symbol: %s\n", beginSymbol.c_str());
 	printf("Terminate: ");
 	for (auto iter = terminate.begin(); iter != terminate.end(); iter++)
-		printf("%s", *iter);
+		printf("%s ", iter->c_str());
 	printf("\n");
 
 	printf("Nonterminate: ");
 	for (auto iter = nonterminate.begin(); iter != nonterminate.end(); iter++)
-		printf("%s", *iter);
+		printf("%s ", iter->c_str());
 	printf("\n");
 
 	printf("RawSyntax: \n");
@@ -490,19 +452,10 @@ void LL::printData()
 		printf("\n");
 	}
 
-	printf("FinalSyntax: \n");
-	for (auto iter = finalSyntax.begin(); iter != finalSyntax.end(); iter++)
-	{
-		printf("%s ->", iter->first.c_str());
-		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
-			printf(" %s", iter2->c_str());
-		printf("\n");
-	}
-
 	printf("First:\n");
 	for (auto iter = firstSet.begin(); iter != firstSet.end(); iter++)
 	{
-		printf("%s ->", iter->first.c_str());
+		printf("%s = ", iter->first.c_str());
 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
 			printf(" %c ", *iter2);
 		printf("\n");
@@ -511,7 +464,7 @@ void LL::printData()
 	printf("Follow:\n");
 	for (auto iter = followSet.begin(); iter != followSet.end(); iter++)
 	{
-		printf("%s ->", iter->first.c_str());
+		printf("%s = ", iter->first.c_str());
 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
 			printf(" %c ", *iter2);
 		printf("\n");
@@ -534,52 +487,53 @@ bool LL::isNonTerminate(char data)
 		return false;
 }
 
-//TODO: not completed
-void LL::rmLRecur()
-{
-	std::string N, str;
-	char factor;
-	int count, mark;
-	int *locOfRecur;
-	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
-	{
-		N = iter->first;
-		locOfRecur = new int[iter->second.size()];
-		count = 0, mark = 0;
-		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
-		{
-			if (iter2->substr(0, N.size() - 1).compare(N) == 0)
-			{
-				locOfRecur[mark++] = count;
-			}
-			count++;
-		}
-		/* left recursive found */
-		if (mark != 0)
-		{
-			//rmLRecur(*iter, locOfRecur, mark);
-		}
-	}
-	delete[] locOfRecur;
-}
-void LL::rmBacktrack()
-{
-	std::string N, str;
-	char factor, *firstChar;
-	int count;
-	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
-	{
-		N = iter->first;
-		firstChar = new char[iter->second.size()];
-		count = 0;
-		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
-		{
-			firstChar[count] = iter2->at(0);
-			count++;
-		}
-	}
-	delete[] firstChar;
-}
+
+// void LL::rmLRecur()
+// {
+// 	std::string N, str;
+// 	char factor;
+// 	int count, mark;
+// 	int *locOfRecur;
+// 	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
+// 	{
+// 		N = iter->first;
+// 		locOfRecur = new int[iter->second.size()];
+// 		count = 0, mark = 0;
+// 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
+// 		{
+// 			if (iter2->substr(0, N.size() - 1).compare(N) == 0)
+// 			{
+// 				locOfRecur[mark++] = count;
+// 			}
+// 			count++;
+// 		}
+// 		/* left recursive found */
+// 		if (mark != 0)
+// 		{
+// 			//rmLRecur(*iter, locOfRecur, mark);
+// 		}
+// 	}
+// 	delete[] locOfRecur;
+// }
+
+// void LL::rmBacktrack()
+// {
+// 	std::string N, str;
+// 	char factor, *firstChar;
+// 	int count;
+// 	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
+// 	{
+// 		N = iter->first;
+// 		firstChar = new char[iter->second.size()];
+// 		count = 0;
+// 		for (auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++)
+// 		{
+// 			firstChar[count] = iter2->at(0);
+// 			count++;
+// 		}
+// 	}
+// 	delete[] firstChar;
+// }
 
 int LL::getDiv(std::string str)
 {
@@ -596,7 +550,8 @@ int LL::getDiv(std::string str)
 	return loc;
 }
 
-bool checkApostrophe(std::vector<std::string>::iterator iter, int &loc, std::string &str)
+/* 查询iter->at(loc)位置的非终结符是否为B'类型，即后跟单引号 */
+bool LL::checkApostrophe(std::vector<std::string>::iterator iter, int &loc, std::string &str)
 {
 	if(loc < 0 || loc >= iter->size())
 		return false;
@@ -607,10 +562,6 @@ bool checkApostrophe(std::vector<std::string>::iterator iter, int &loc, std::str
 		loc++;
 	} while (loc < iter->size() && iter->at(loc) == '\'');
 	str = tmp;
-	return true;
-}
-
-bool hasCommonFactor(char *data, char &factor)
-{
+	//nonterminate.insert(str);
 	return true;
 }
