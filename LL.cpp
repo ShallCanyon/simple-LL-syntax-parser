@@ -456,6 +456,17 @@ void LL::generateTable()
 		}
 	}
 }
+
+tableType LL::getTable()
+{
+	return table;
+}
+
+std::string LL::getBeginSymbol()
+{
+	return beginSymbol;
+}
+
 void LL::preProcess(std::string line/*, int &count*/)
 {
 	std::string N, tmp;
@@ -537,12 +548,12 @@ void LL::printData()
 	printf("Terminate: ");
 	for (auto iter = terminate.begin(); iter != terminate.end(); iter++)
 		printf("%s ", iter->c_str());
-	printf("\n");
+	printf("\n\n");
 
 	printf("Nonterminate: ");
 	for (auto iter = nonterminate.begin(); iter != nonterminate.end(); iter++)
 		printf("%s ", iter->c_str());
-	printf("\n");
+	printf("\n\n");
 
 	printf("RawSyntax: \n");
 	for (auto iter = rawSyntax.begin(); iter != rawSyntax.end(); iter++)
@@ -552,6 +563,7 @@ void LL::printData()
 			printf(" %s ", iter2->c_str());
 		printf("\n");
 	}
+	printf("\n");
 
 	printf("First:\n");
 	for (auto iter = firstSet.begin(); iter != firstSet.end(); iter++)
@@ -561,6 +573,7 @@ void LL::printData()
 			printf(" %c ", *iter2);
 		printf("\n");
 	}
+	printf("\n");
 
 	printf("Follow:\n");
 	for (auto iter = followSet.begin(); iter != followSet.end(); iter++)
@@ -570,6 +583,7 @@ void LL::printData()
 			printf(" %c ", *iter2);
 		printf("\n");
 	}
+	printf("\n");
 
 	printf("Table:\n\t");
 	for (auto header = terminate.begin(); header != terminate.end(); header++)
@@ -589,9 +603,10 @@ void LL::printData()
 		}
 		printf("\n");
 	}
+	printf("\n");
 };
 
-bool LL::isTerminate(char data)
+bool isTerminate(char data)
 {
 	if ((data >= 'a' && data <= 'z') || (data >= '(' && data <= '/'))
 		return true;
@@ -599,7 +614,7 @@ bool LL::isTerminate(char data)
 		return false;
 	//return !isNonTerminate(data);
 }
-bool LL::isNonTerminate(char data)
+bool isNonTerminate(char data)
 {
 	if (data >= 'A' && data <= 'Z')
 		return true;
